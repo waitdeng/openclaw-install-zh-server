@@ -11,11 +11,11 @@ set -Eeuo pipefail
 # 1. 检查/安装 Node.js 22+
 # 2. 获取汉化版可用版本
 # 3. 支持输入序号或完整版本号安装
-# 4. 支持 安装/切换、回退版本、仅恢复配置 三种模式
+# 4. 支持 install / rollback / restore-config 三种模式
 # 5. 安装前自动备份 ~/.openclaw
 # 6. 安装失败时自动尝试回退旧版本
-# 7. 可选恢复最近一次配置备份
-# 8. root / 普通用户环境下自动修复 npm 全局 PATH
+# 7. 可选自动恢复最近一次配置备份
+# 8. 自动修复 npm 全局 PATH
 # 9. 自动创建 openclaw 命令软链接（如有需要）
 # 10. 执行 openclaw onboard --install-daemon
 # 11. 尝试启用 systemd --user 自启动
@@ -31,13 +31,13 @@ set -Eeuo pipefail
 #   ACTION=restore-config bash openclaw-install-zh-server.sh
 #
 # 可选环境变量：
-#   AUTO_RESTORE_CONFIG_ON_FAIL=1   # 安装失败时自动恢复最近备份
-#   SKIP_ONBOARD=1                  # 跳过 onboard --install-daemon
+#   AUTO_RESTORE_CONFIG_ON_FAIL=1
+#   SKIP_ONBOARD=1
 # =========================================================
 
 PKG_NAME="@qingchencloud/openclaw-zh"
 VERSION="${1:-${OPENCLAW_VERSION:-}}"
-ACTION="${ACTION:-}"   # install | rollback | restore-config
+ACTION="${ACTION:-}"
 
 LATEST_VERSION=""
 CURRENT_VERSION=""
@@ -88,10 +88,8 @@ install_node22_debian_like() {
   ${SUDO} apt-get update -y
   ${SUDO} apt-get install -y ca-certificates curl gnupg
   ${SUDO} mkdir -p /etc/apt/keyrings
-  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
-    | ${SUDO} gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" \
-    | ${SUDO} tee /etc/apt/sources.list.d/nodesource.list >/dev/null
+  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key     | ${SUDO} gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main"     | ${SUDO} tee /etc/apt/sources.list.d/nodesource.list >/dev/null
   ${SUDO} apt-get update -y
   ${SUDO} apt-get install -y nodejs
 }
@@ -188,10 +186,7 @@ create_openclaw_symlink_if_needed() {
 
 detect_current_version() {
   ensure_npm_global_bin_in_path
-  CURRENT_VERSION="$(npm list -g "${PKG_NAME}" --depth=0 2>/dev/null \
-    | sed -n "s/.*${PKG_NAME}@//p" \
-    | head -n1 \
-    | tr -d '[:space:]')"
+  CURRENT_VERSION="$(npm list -g "${PKG_NAME}" --depth=0 2>/dev/null     | sed -n "s/.*${PKG_NAME}@//p"     | head -n1     | tr -d '[:space:]')"
 
   if [ -n "${CURRENT_VERSION}" ]; then
     info "当前已安装汉化版版本: ${CURRENT_VERSION}"
@@ -587,9 +582,7 @@ enable_systemd_user_service_if_possible() {
   local found svc
   found=""
 
-  for svc in \
-    openclaw-gateway-default.service \
-    openclaw-gateway.service
+  for svc in     openclaw-gateway-default.service     openclaw-gateway.service
   do
     if systemctl --user list-unit-files 2>/dev/null | grep -q "^${svc}[[:space:]]"; then
       found="${svc}"

@@ -1,205 +1,306 @@
 # OpenClaw 中文版服务器安装脚本
 
-一个用于 **OpenClaw 汉化版服务器部署与维护** 的自动化脚本。
+<p align="center">
+  <img src="https://img.shields.io/badge/OpenClaw-Installer-blue" alt="OpenClaw Installer" />
+  <img src="https://img.shields.io/badge/Platform-Linux-green" alt="Platform Linux" />
+  <img src="https://img.shields.io/badge/Shell-Bash-orange" alt="Shell Bash" />
+  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT License" />
+</p>
 
-支持：
+一个面向 **OpenClaw 汉化版** 的 Linux 服务器安装与维护脚本，适合 VPS、云服务器、Ubuntu / Debian 以及 SSH 场景。
 
--   自动安装 OpenClaw 汉化版
--   查看可用版本并选择安装
--   升级 / 降级版本
--   版本回退
--   自动备份配置
--   恢复配置
--   自动修复 npm PATH
--   自动创建 `openclaw` 命令
--   自动初始化 daemon
--   自动尝试 systemd 用户服务
+## 特性
 
-适合：
+- 查看可用版本并交互选择安装
+- 安装 / 切换指定版本
+- 回退到旧版本
+- 安装前自动备份配置
+- 支持恢复历史配置
+- 自动修复 `npm -g` 的 `PATH`
+- 自动尝试创建 `openclaw` 命令软链接
+- 自动执行 `openclaw onboard --install-daemon`
+- 自动尝试启用 `systemd --user`
 
--   VPS
--   Linux 服务器
--   Ubuntu / Debian
--   DevOps 自动化部署
+---
 
-------------------------------------------------------------------------
+## 目录
 
-# 目录
+- [项目结构](#项目结构)
+- [环境要求](#环境要求)
+- [快速开始](#快速开始)
+- [使用方式](#使用方式)
+- [环境变量](#环境变量)
+- [配置备份与恢复](#配置备份与恢复)
+- [常用命令](#常用命令)
+- [FAQ](#faq)
+- [变更日志](#变更日志)
+- [License](#license)
 
--   [项目特点](#项目特点)
--   [环境要求](#环境要求)
--   [快速开始](#快速开始)
--   [使用示例](#使用示例)
--   [配置备份](#配置备份)
--   [常用命令](#常用命令)
+---
 
-------------------------------------------------------------------------
+## 项目结构
 
-# 项目特点
+建议仓库结构如下：
 
-### 自动版本管理
+```text
+openclaw-install-zh-server/
+├─ openclaw-install-zh-server.sh
+├─ README.md
+├─ LICENSE
+└─ CHANGELOG.md
+```
 
-支持
+---
 
--   安装指定版本
--   自动查看可用版本
--   版本升级
--   版本降级
--   版本回退
+## 环境要求
 
-### 自动配置备份
+系统要求：
 
-安装前自动备份
+```text
+Linux
+推荐 Ubuntu / Debian
+```
 
-    ~/.openclaw
+Node.js 要求：
 
-备份目录
+```text
+>= 22
+推荐 >= 22.12.0
+```
 
-    ~/.openclaw-backups/
+如果系统未安装合适版本的 Node.js，脚本会尝试自动安装。
 
-### 自动修复 PATH
+---
 
-如果 `npm install -g` 后 `openclaw` 不在 PATH：
+## 快速开始
 
-脚本会自动：
+### 方式一：git clone
 
--   修复 PATH
--   添加到 shell profile
--   创建软链接
+```bash
+git clone https://github.com/waitdeng/openclaw-install-zh-server.git
+cd openclaw-install-zh-server
+chmod +x openclaw-install-zh-server.sh
+./openclaw-install-zh-server.sh
+```
 
-### 自动 daemon 初始化
+### 方式二：wget
 
-安装完成后执行
+```bash
+wget -O openclaw-install.sh https://raw.githubusercontent.com/waitdeng/openclaw-install-zh-server/main/openclaw-install-zh-server.sh
+chmod +x openclaw-install.sh
+./openclaw-install.sh
+```
 
-    openclaw onboard --install-daemon
+### 方式三：curl 一键运行
 
-### 服务器增强
+```bash
+curl -fsSL https://raw.githubusercontent.com/waitdeng/openclaw-install-zh-server/main/openclaw-install-zh-server.sh | bash
+```
 
-兼容：
+---
 
--   root 环境
--   SSH 环境
--   systemd user service
+## 使用方式
 
-------------------------------------------------------------------------
+### 交互模式
 
-# 环境要求
+```bash
+./openclaw-install-zh-server.sh
+```
 
-系统
+脚本会显示：
 
-    Linux
-    Ubuntu / Debian 推荐
+```text
+[1] 安装 / 切换到指定版本
+[2] 回退到指定旧版本
+[3] 仅恢复配置备份
+```
 
-Node.js
+### 非交互模式
 
-    >= 22
-    推荐 >= 22.12
+安装指定版本：
 
-如果 Node 未安装，脚本会自动安装。
+```bash
+ACTION=install OPENCLAW_VERSION=1.2.3 ./openclaw-install-zh-server.sh
+```
 
-------------------------------------------------------------------------
+回退到指定版本：
 
-# 快速开始
+```bash
+ACTION=rollback OPENCLAW_VERSION=1.2.2 ./openclaw-install-zh-server.sh
+```
 
-## 1 下载脚本
+仅恢复配置：
 
-    git clone https://github.com/waitdeng/openclaw-install-zh-server.git
-    cd openclaw-install-zh-server
+```bash
+ACTION=restore-config ./openclaw-install-zh-server.sh
+```
 
-或直接下载脚本
+安装失败时自动恢复最近配置备份：
 
-    wget -O openclaw-install.sh https://raw.githubusercontent.com/waitdeng/openclaw-install-zh-server/main/openclaw-install-zh-server.sh && chmod +x openclaw-install.sh && ./openclaw-install.sh
+```bash
+AUTO_RESTORE_CONFIG_ON_FAIL=1 ./openclaw-install-zh-server.sh
+```
 
-## 2 添加执行权限
+跳过 daemon 初始化：
 
-    chmod +x openclaw-install-zh-server.sh
+```bash
+SKIP_ONBOARD=1 ./openclaw-install-zh-server.sh
+```
 
-## 3 运行
+---
 
-    ./openclaw-install-zh-server.sh
+## 环境变量
 
-------------------------------------------------------------------------
+| 变量名 | 说明 | 示例 |
+|---|---|---|
+| `OPENCLAW_VERSION` | 指定目标版本 | `OPENCLAW_VERSION=1.2.3` |
+| `ACTION` | 操作模式：`install` / `rollback` / `restore-config` | `ACTION=rollback` |
+| `AUTO_RESTORE_CONFIG_ON_FAIL` | 安装失败时自动恢复最近配置备份，`0` 或 `1` | `AUTO_RESTORE_CONFIG_ON_FAIL=1` |
+| `SKIP_ONBOARD` | 跳过 `openclaw onboard --install-daemon`，`0` 或 `1` | `SKIP_ONBOARD=1` |
+| `OPENCLAW_STATE_DIR` | 自定义 OpenClaw 状态目录 | `OPENCLAW_STATE_DIR=/data/openclaw` |
+| `OPENCLAW_BACKUP_DIR` | 自定义配置备份目录 | `OPENCLAW_BACKUP_DIR=/data/openclaw-backups` |
 
-# 使用示例
+---
 
-## 交互式安装
+## 配置备份与恢复
 
-    ./openclaw-install-zh-server.sh
+默认状态目录：
 
-脚本会显示
+```bash
+~/.openclaw
+```
 
-    1. 安装/切换版本
-    2. 回退版本
-    3. 恢复配置
+默认备份目录：
 
-## 安装指定版本
+```bash
+~/.openclaw-backups
+```
 
-    ./openclaw-install-zh-server.sh 1.2.3
+安装、切换、回退前会自动备份配置。
 
-## 非交互安装
+只恢复配置：
 
-    ACTION=install OPENCLAW_VERSION=1.2.3 ./openclaw-install-zh-server.sh
+```bash
+ACTION=restore-config ./openclaw-install-zh-server.sh
+```
 
-## 回退版本
+---
 
-    ACTION=rollback OPENCLAW_VERSION=1.2.2 ./openclaw-install-zh-server.sh
+## 常用命令
 
-## 仅恢复配置
+查看版本：
 
-    ACTION=restore-config ./openclaw-install-zh-server.sh
+```bash
+openclaw --version
+```
 
-## 安装失败自动恢复配置
+打开面板：
 
-    AUTO_RESTORE_CONFIG_ON_FAIL=1 ./openclaw-install-zh-server.sh
+```bash
+openclaw dashboard
+```
 
-## 跳过 daemon 初始化
+查看 gateway 状态：
 
-    SKIP_ONBOARD=1 ./openclaw-install-zh-server.sh
+```bash
+openclaw gateway status
+```
 
-------------------------------------------------------------------------
+查看 systemd 用户服务状态：
 
-# 配置备份
+```bash
+systemctl --user status 'openclaw-gateway*'
+```
 
-安装或升级前自动备份
+查看日志：
 
-    ~/.openclaw
+```bash
+journalctl --user -u openclaw-gateway-default.service -n 100 --no-pager
+```
 
-备份目录
+---
 
-    ~/.openclaw-backups/openclaw-backup-20260307-120000
+## FAQ
 
-恢复备份
+<details>
+<summary><strong>安装后找不到 <code>openclaw</code> 命令怎么办？</strong></summary>
 
-    ACTION=restore-config ./openclaw-install-zh-server.sh
+先检查：
 
-------------------------------------------------------------------------
+```bash
+which openclaw
+npm prefix -g
+ls -l "$(npm prefix -g)/bin/openclaw"
+```
 
-# 常用命令
+然后重新加载 shell：
 
-查看版本
+```bash
+source ~/.bashrc
+hash -r
+```
 
-    openclaw --version
+</details>
 
-打开面板
+<details>
+<summary><strong><code>systemctl --user</code> 不稳定怎么办？</strong></summary>
 
-    openclaw dashboard
+这通常发生在 root 用户、纯 SSH 会话或者没有完整用户会话环境时。
 
-查看 gateway
+建议执行：
 
-    openclaw gateway status
+```bash
+loginctl enable-linger "$(whoami)"
+```
 
-查看 systemd
+同时更推荐使用普通用户运行 OpenClaw。
 
-    systemctl --user status 'openclaw-gateway*'
+</details>
 
-查看日志
+<details>
+<summary><strong>生产环境升级建议是什么？</strong></summary>
 
-    journalctl --user -u openclaw-gateway-default.service -n 100
+推荐顺序：
 
-------------------------------------------------------------------------
+```bash
+AUTO_RESTORE_CONFIG_ON_FAIL=1 SKIP_ONBOARD=1 ./openclaw-install-zh-server.sh
+openclaw --version
+openclaw onboard --install-daemon
+```
 
+</details>
 
+---
 
-# Star History
+## 变更日志
 
-如果这个脚本对你有帮助，请点一个 ⭐
+### v1.0.0
+
+- 初始版本
+- 支持查看版本并安装
+- 支持 daemon 初始化
+
+### v1.1.0
+
+- 增加服务器环境优化
+- 自动修复 PATH
+- 自动尝试创建命令软链接
+
+### v1.2.0
+
+- 增加版本回退功能
+- 增加安装失败自动回退
+
+### v1.3.0
+
+- 增加配置自动备份
+- 增加配置恢复模式
+- 增加安装失败自动恢复配置开关
+
+---
+
+## License
+
+MIT
+
+如果这个项目对你有帮助，欢迎点一个 ⭐
