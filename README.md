@@ -46,8 +46,6 @@
 openclaw-install-zh-server/
 ├─ openclaw-install-zh-server.sh
 ├─ README.md
-├─ LICENSE
-└─ CHANGELOG.md
 ```
 
 ---
